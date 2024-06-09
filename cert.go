@@ -1,5 +1,5 @@
 // cert.go
-package cert
+package main
 
 import (
 	"fmt"
