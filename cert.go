@@ -92,9 +92,22 @@ func (c *Cert) get(config string) (string, error) {
         error - if the config file cannot be read or if the file content cannot be written
 */
 func (c *Cert) save(config string) error {
+    conf, err := loadConfig(config)
+    if err != nil {
+        return fmt.Errorf("Cert.save: failed to load config %q\n%w\n", config, err)
+    }
+
     certPath, err := c.get(config)
     if err != nil {
         return fmt.Errorf("Cert.save: failed to get filepath\n%w\n", err)
+    }
+
+    _, err = os.Stat(conf.PathRoot)
+    if os.IsNotExist(err) {
+        err = os.MkdirAll(certPath, 0770)
+        if err != nil {
+        return fmt.Errorf("Cert.save: failed to create filepath %q\n%w\n", certPath, err)
+        }
     }
     err = os.WriteFile(certPath, c.Body, 0600)
     if err != nil {
