@@ -1,0 +1,18 @@
+name: Pull CI Tests
+run-name: ${{ github.actor }} is making a pull request
+
+on:
+  pull_request:
+    branches:
+    - main
+    
+jobs:
+  Run-Unit-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main branch code
+        uses: actions/checkout@v4
+
+      - name: Go Test Action
+        uses: robherley/go-test-action@v0.4.1
+      
