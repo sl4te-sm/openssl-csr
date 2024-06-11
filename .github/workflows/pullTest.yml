@@ -1,0 +1,15 @@
+name: Pull Test
+run-name: ${{ github.actor }} is requesting a pull request
+on:
+  pull_request:
+    branches:
+    - main
+jobs:
+  testCerts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4.1.5
+      - name: Go Test Action
+        uses: robherley/go-test-action@v0.4.1
+          
