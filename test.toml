@@ -1,0 +1,4 @@
+# Filepath to certs repository
+CertsRepo = './root/ca/intermediate/certs/'
+# Filepath to csr repository
+CsrRepo = './root/ca/intermediate/csr/'
