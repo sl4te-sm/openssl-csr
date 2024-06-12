@@ -6,8 +6,6 @@ import (
 	"testing"
 )
 
-var config string = "test_conf.json"
-
 var testCerts = []*Cert {
     {Host: "webserver.domain", Body: []byte("Testing ABC"), Type: "csr"},
     {Host: "appserver.domain", Body: []byte("Testing 123"), Type: "cert"},
@@ -27,9 +25,29 @@ var getTests = []getTest {
     {testCerts[3], ""},
 }
 
+// loadConfig() should output a configuration for the test config
+func TestLoadConfig(t *testing.T) {
+    config, err := loadConfig("test.toml")
+    if err != nil {
+        t.Errorf("loadConfig failed due to error %q", err)
+    }
+    
+    var certsExpected string = "./root/ca/intermediate/certs/"
+    var csrExpected string = "./root/ca/intermediate/csr/"
+
+    if config.CertsRepo != certsExpected {
+        t.Errorf("Output %q not equal to expected %q", config.CertsRepo, certsExpected)
+    }
+
+    if config.CsrRepo != csrExpected {
+        t.Errorf("Output %q not equal to expected %q", config.CsrRepo, csrExpected)
+    }
+}
+
 // Cert.get() should output a string containing the filepath
 // /root/ca/intermediate/${Cert.Type}s/${Cert.Host}.${Cert.Type}.pem
 func TestGet(t *testing.T) {
+    config, _ := loadConfig("test.toml")
     for _, test := range getTests {
         output, _ := test.cert.get(config)
         if output != test.expected {
@@ -41,12 +59,17 @@ func TestGet(t *testing.T) {
 
 // Cert.save() should create a file with the certificate name and file
 func TestSave(t *testing.T) {
+    config, _ := loadConfig("test.toml")
     for _, test := range testCerts {
         certPath, err := test.get(config)
         if err != nil {
             continue
         }
-        test.save(config)
+
+        err = test.save(config)
+        if err != nil {
+            t.Errorf("Cert.save produced error: %q", err)
+        }
 
         // Check that the file exists
         body, err := os.ReadFile(certPath)
@@ -63,4 +86,3 @@ func TestSave(t *testing.T) {
         os.Remove(certPath)
     }
 }
-

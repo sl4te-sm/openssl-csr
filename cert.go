@@ -4,19 +4,20 @@ package main
 import (
 	"fmt"
 	"os"
-    "encoding/json"
+    "github.com/pelletier/go-toml/v2"
 )
 
-// configuration file conf.json
+// configuration file config.toml
 type Configuration struct {
-    PathRoot string `json:"pathRoot"`
+    CertsRepo string
+    CsrRepo string
 }
 
 /*
     loadConfig(filename string)
 
     Loads the configuration file filename in the same path
-    The configuration file should be JSON
+    The configuration file should be TOML
 
     Parameters:
         filename (string) - the filename of the configuration to import
@@ -26,7 +27,7 @@ type Configuration struct {
         error - if the file cannot be read or deserialized
 
     Example:
-        c, err = loadConfig("conf.json")
+        c, err = loadConfig("config.toml")
         fmt.Println(c.Pathroot)
 */
 func loadConfig(filename string) (*Configuration, error) {
@@ -35,7 +36,7 @@ func loadConfig(filename string) (*Configuration, error) {
         return &Configuration{}, fmt.Errorf("loadConfig: failed to read file %q\n%w\n", filename, err)
     }
     var c Configuration
-    err = json.Unmarshal(body, &c)
+    err = toml.Unmarshal(body, &c)
     if err != nil {
         return &Configuration{}, fmt.Errorf("loadConfig: failed to parse file %q\n%w\n", filename, err)
     }
@@ -65,16 +66,11 @@ type Cert struct {
         c, err := myCert.get("conf.json")
         fmt.Println(c)
 */
-func (c *Cert) get(config string) (string, error) {
-    conf, err := loadConfig(config)
-    if err != nil {
-        return "", fmt.Errorf("Cert.get: failed to read config file %q\n%w\n", config, err)
-    }
-    var pathRoot string = conf.PathRoot
+func (c *Cert) get(config *Configuration) (string, error) {
     if c.Type == "csr" {
-        return (pathRoot + "/csr/" + c.Host + ".csr.pem"), nil
+        return (config.CsrRepo + c.Host + ".csr.pem"), nil
     } else if c.Type == "cert" {
-        return (pathRoot + "/certs/" + c.Host + ".cert.pem"), nil
+        return (config.CertsRepo + c.Host + ".cert.pem"), nil
     } else {
         return "", fmt.Errorf("Cert.get: invalid type %q; must be csr or cert", c.Type)
     }
@@ -91,28 +87,29 @@ func (c *Cert) get(config string) (string, error) {
     Returns:
         error - if the config file cannot be read or if the file content cannot be written
 */
-func (c *Cert) save(config string) error {
-    conf, err := loadConfig(config)
-    if err != nil {
-        return fmt.Errorf("Cert.save: failed to load config %q\n%w\n", config, err)
-    }
-
+func (c *Cert) save(config *Configuration) error {
     certPath, err := c.get(config)
     if err != nil {
         return fmt.Errorf("Cert.save: failed to get filepath\n%w\n", err)
     }
 
-    _, err = os.Stat(conf.PathRoot)
+    var pathRoot string
+    if c.Type == "csr" {
+        pathRoot = config.CsrRepo
+    } else {
+        pathRoot = config.CertsRepo
+    }
+    
+    _, err = os.Stat(pathRoot)
     if os.IsNotExist(err) {
-        err = os.MkdirAll(certPath, 0770)
+        err = os.MkdirAll(pathRoot, os.ModePerm)
         if err != nil {
-        return fmt.Errorf("Cert.save: failed to create filepath %q\n%w\n", certPath, err)
+            return fmt.Errorf("Cert.save: failed to create path %q\n%w\n", pathRoot, err)
         }
     }
-    err = os.WriteFile(certPath, c.Body, 0600)
+    err = os.WriteFile(certPath, c.Body, 0444)
     if err != nil {
         return fmt.Errorf("Cert.save: failed to save file %q\n%w\n", certPath, err)
     }
     return nil
 }
-
