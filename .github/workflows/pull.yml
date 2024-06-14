@@ -1,9 +1,12 @@
 name: Pull Request Tests
 run-name: ${{ github.actor }} is making a pull request
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
-    -  main
+      -  main
 
 jobs:
   Run-Unit-Tests:
