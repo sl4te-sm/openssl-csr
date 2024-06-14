@@ -3,8 +3,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/pelletier/go-toml/v2"
 	"os"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 // configuration file config.toml
@@ -115,7 +116,7 @@ func (c *Cert) save(config *Configuration) error {
 			return fmt.Errorf("Cert.save: failed to create path %q\n%w\n", pathRoot, err)
 		}
 	}
-	err = os.WriteFile(certPath, c.Body, 0444)
+	err = os.WriteFile(certPath, c.Body, 0o444)
 	if err != nil {
 		return fmt.Errorf("Cert.save: failed to save file %q\n%w\n", certPath, err)
 	}
