@@ -1,9 +1,12 @@
 name: Pull Request Tests
 run-name: ${{ github.actor }} is making a pull request
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
-    -  main
+      -  main
 
 jobs:
   Run-Unit-Tests:
@@ -17,3 +20,6 @@ jobs:
 
       - name: Run unit tests
         uses: robherley/go-test-action@v0.4.1
+
+      - name: Run static analysis
+        uses: securego/gosec@master
