@@ -20,3 +20,6 @@ jobs:
 
       - name: Run unit tests
         uses: robherley/go-test-action@v0.4.1
+
+      - name: Run static analysis
+        uses: securego/gosec@master
