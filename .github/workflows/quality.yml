@@ -1,0 +1,24 @@
+name: Code quality check
+run-name: QC on ${{ github.actor }} push
+on: [workflow_dispatch]
+
+jobs:
+  Run-Quality-Analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+
+      - name: Setup gofumpt
+        uses: luisnquin/setup-gofumpt@v2
+
+      - name: Run static analysis
+        run: |
+          GOFUMPTOUT=$(gofumpt -d .)
+          if test -n "$GOFUMPTOUT"; then
+            echo "${GOFUMPTOUT}"
+            exit 1
+          fi
