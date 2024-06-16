@@ -1,6 +1,6 @@
 name: Code quality check
 run-name: QC on ${{ github.actor }} push
-on: [workflow_dispatch]
+on: [push]
 
 jobs:
   Run-Quality-Analysis:
