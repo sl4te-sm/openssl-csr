@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"os"
+	//    "os/exec"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -12,33 +13,19 @@ import (
 type Configuration struct {
 	CertsRepo string
 	CsrRepo   string
+	CertChain string
 }
 
-/*
-loadConfig(filename string)
-
-Loads the configuration file filename in the same path
-The configuration file should be TOML
-
-Parameters:
-
-	filename (string) - the filename of the configuration to import
-
-Returns:
-
-	*Configuration -  configuration struct
-	error - if the file cannot be read or deserialized
-
-Example:
-
-	c, err = loadConfig("config.toml")
-	fmt.Println(c.Pathroot)
-*/
+// loadConfig(filename string)
+// Loads the configuration file filename in the same path
+// The configuration file should be TOML
 func loadConfig(filename string) (*Configuration, error) {
 	body, err := os.ReadFile(filename)
 	if err != nil {
 		return &Configuration{}, fmt.Errorf("loadConfig: failed to read file %q\n%w\n", filename, err)
 	}
+
+	// Generate Configuration from the read file
 	var c Configuration
 	err = toml.Unmarshal(body, &c)
 	if err != nil {
@@ -50,75 +37,80 @@ func loadConfig(filename string) (*Configuration, error) {
 
 // representation of either a csr or cert file
 type Cert struct {
-	Host, Type string
-	Body       []byte
+	Host, CertType string
+	Body           []byte
 }
 
-/*
-Cert.get(config)
-
-# Determines the certificate filepath given the pathRoot in the configuration file
-
-Parameters:
-
-	config (string) - local or full path to the configuration file
-
-Returns:
-
-	string - The full filepath corresponding to the certificate
-	error - If the config input cannot be read
-
-Example:
-
-	c, err := myCert.get("conf.json")
-	fmt.Println(c)
-*/
-func (c *Cert) get(config *Configuration) (string, error) {
-	if c.Type == "csr" {
+// Cert.Get(config)
+// Returns the certificate filepath given the pathRoot in the configuration file
+func (c *Cert) Get(config *Configuration) (string, error) {
+	if c.CertType == "csr" {
 		return (config.CsrRepo + c.Host + ".csr.pem"), nil
-	} else if c.Type == "cert" {
+	} else if c.CertType == "cert" {
 		return (config.CertsRepo + c.Host + ".cert.pem"), nil
 	} else {
-		return "", fmt.Errorf("Cert.get: invalid type %q; must be csr or cert", c.Type)
+		return "", fmt.Errorf("Cert.get: invalid type %q; must be csr or cert", c.CertType)
 	}
 }
 
-/*
-Cert.save(config)
-
-# Saves the certificate content to the appropriate filepath based on the config
-
-Parameters:
-
-	config (string) - Local or full path to the config file
-
-Returns:
-
-	error - if the config file cannot be read or if the file content cannot be written
-*/
-func (c *Cert) save(config *Configuration) error {
-	certPath, err := c.get(config)
+// Cert.Save(config)
+// Saves the certificate content to the appropriate filepath based on the config
+func (csr *Cert) Save(config *Configuration) error {
+	certPath, err := csr.Get(config)
 	if err != nil {
-		return fmt.Errorf("Cert.save: failed to get filepath\n%w\n", err)
+		return fmt.Errorf("Cert.Save: failed to get filepath\n%w\n", err)
 	}
 
 	var pathRoot string
-	if c.Type == "csr" {
+	if csr.CertType == "csr" {
 		pathRoot = config.CsrRepo
 	} else {
 		pathRoot = config.CertsRepo
 	}
 
+	// Create certificate repo path if it does not already exist
 	_, err = os.Stat(pathRoot)
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(pathRoot, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("Cert.save: failed to create path %q\n%w\n", pathRoot, err)
+			return fmt.Errorf("Cert.Save: failed to create path %q\n%w\n", pathRoot, err)
 		}
 	}
-	err = os.WriteFile(certPath, c.Body, 0o444)
+
+	err = os.WriteFile(certPath, csr.Body, 0o444)
 	if err != nil {
-		return fmt.Errorf("Cert.save: failed to save file %q\n%w\n", certPath, err)
+		return fmt.Errorf("Cert.Save: failed to save file %q\n%w\n", certPath, err)
 	}
 	return nil
 }
+
+// Cert.Verify()
+// Will return error if certificate cannot be verified
+/*
+func (cer *Cert) Verify(config *Configuration) (int, error) {
+    if cer.CertType != "cert" {
+        return 1, fmt.Errorf("Cert.Verify: Invalid cert type %q", cer.CertType)
+    }
+
+    certPath, err := cer.Get(config)
+    if err != nil {
+        return 1, fmt.Errorf("Cert.Verify: Failed to get filepath\n%w\n", err)
+    }
+
+    _, err = os.Stat(certPath)
+    if os.IsNotExist(err) {
+        return 1, fmt.Errorf("Cert.Verify: file %q does not exist", certPath)
+    }
+
+    cmd := exec.Command("openssl", "verify", "-CAfile", config.CertChain, certPath)
+    out, err := cmd.Output()
+    if err != nil {
+        if exitError, ok := err.(*exec.ExitError); ok {
+            return exitError.ExitCode(), fmt.Errorf("Cert.Verify: openssl verify failed with exit code %d: %s", exitError.ExitCode(), out)
+        }
+        return 1, fmt.Errorf("Cert.Verify: openssl verify failed with unknown error: %w", err)
+    }
+
+    return 0, nil
+}
+*/

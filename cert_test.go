@@ -6,23 +6,23 @@ import (
 	"testing"
 )
 
-var testCerts = []*Cert{
-	{Host: "webserver.domain", Body: []byte("Testing ABC"), Type: "csr"},
-	{Host: "appserver.domain", Body: []byte("Testing 123"), Type: "cert"},
-	{Host: "dbserver.domain", Body: []byte("Testing xyz"), Type: "bogus"},
-	{Host: "authserver.domain", Body: []byte("Testing 987"), Type: ""},
+var getTestCerts = [4]*Cert{
+	{Host: "webserver.domain", Body: []byte("Testing ABC"), CertType: "csr"},
+	{Host: "appserver.domain", Body: []byte("Testing 123"), CertType: "cert"},
+	{Host: "dbserver.domain", Body: []byte("Testing xyz"), CertType: "bogus"},
+	{Host: "authserver.domain", Body: []byte("Testing 987"), CertType: ""},
 }
 
-type getTest struct {
+type certTest struct {
 	cert     *Cert
 	expected string
 }
 
-var getTests = []getTest{
-	{testCerts[0], "./root/ca/intermediate/csr/webserver.domain.csr.pem"},
-	{testCerts[1], "./root/ca/intermediate/certs/appserver.domain.cert.pem"},
-	{testCerts[2], ""},
-	{testCerts[3], ""},
+var getTests = [4]*certTest{
+	{getTestCerts[0], "./root/ca/intermediate/csr/webserver.domain.csr.pem"},
+	{getTestCerts[1], "./root/ca/intermediate/certs/appserver.domain.cert.pem"},
+	{getTestCerts[2], ""},
+	{getTestCerts[3], ""},
 }
 
 // loadConfig() should output a configuration for the test config
@@ -49,7 +49,7 @@ func TestLoadConfig(t *testing.T) {
 func TestGet(t *testing.T) {
 	config, _ := loadConfig("test.toml")
 	for _, test := range getTests {
-		output, _ := test.cert.get(config)
+		output, _ := test.cert.Get(config)
 		if output != test.expected {
 			t.Errorf("Output %q not equal to expected %q", output, test.expected)
 		}
@@ -59,13 +59,13 @@ func TestGet(t *testing.T) {
 // Cert.save() should create a file with the certificate name and file
 func TestSave(t *testing.T) {
 	config, _ := loadConfig("test.toml")
-	for _, test := range testCerts {
-		certPath, err := test.get(config)
+	for _, test := range getTestCerts {
+		certPath, err := test.Get(config)
 		if err != nil {
 			continue
 		}
 
-		err = test.save(config)
+		err = test.Save(config)
 		if err != nil {
 			t.Errorf("Cert.save produced error: %q", err)
 		}

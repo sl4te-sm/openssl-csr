@@ -2,3 +2,5 @@
 CertsRepo = '/root/ca/intermediate/certs/'
 # Filepath to csr repository
 CsrRepo = '/root/ca/intermediate/csr/'
+# Full path to the certificate (chain) file
+CertChain = '/root/ca/intermediate/certs/ca-chain.cert.pem'
