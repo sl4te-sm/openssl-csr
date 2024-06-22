@@ -3,8 +3,11 @@ package main
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"testing"
 )
+
+const TEST_CONFIG string = "test.toml"
 
 var getTestCerts = [4]*Cert{
 	{Host: "webserver.domain", Body: []byte("Testing ABC"), CertType: "csr"},
@@ -27,27 +30,31 @@ var getTests = [4]*certTest{
 
 // loadConfig() should output a configuration for the test config
 func TestLoadConfig(t *testing.T) {
-	config, err := loadConfig("test.toml")
+	config, err := loadConfig(TEST_CONFIG)
 	if err != nil {
 		t.Errorf("loadConfig failed due to error %q", err)
 	}
 
-	var certsExpected string = "./root/ca/intermediate/certs/"
-	var csrExpected string = "./root/ca/intermediate/csr/"
+	const CERTS_EXPECTED string = "./root/ca/intermediate/certs/"
+	const CSR_EXPECTED string = "./root/ca/intermediate/csr/"
 
-	if config.CertsRepo != certsExpected {
-		t.Errorf("Output %q not equal to expected %q", config.CertsRepo, certsExpected)
+	if config.CertsRepo != CERTS_EXPECTED {
+		t.Errorf("Output %q not equal to expected %q", config.CertsRepo, CERTS_EXPECTED)
 	}
 
-	if config.CsrRepo != csrExpected {
-		t.Errorf("Output %q not equal to expected %q", config.CsrRepo, csrExpected)
+	if config.CsrRepo != CSR_EXPECTED {
+		t.Errorf("Output %q not equal to expected %q", config.CsrRepo, CSR_EXPECTED)
 	}
 }
 
 // Cert.get() should output a string containing the filepath
 // /root/ca/intermediate/${Cert.Type}s/${Cert.Host}.${Cert.Type}.pem
 func TestGet(t *testing.T) {
-	config, _ := loadConfig("test.toml")
+	config, err := loadConfig(TEST_CONFIG)
+	if err != nil {
+		t.Errorf("loadConfig failed due to error %q", err)
+		return
+	}
 	for _, test := range getTests {
 		output, _ := test.cert.Get(config)
 		if output != test.expected {
@@ -58,7 +65,12 @@ func TestGet(t *testing.T) {
 
 // Cert.save() should create a file with the certificate name and file
 func TestSave(t *testing.T) {
-	config, _ := loadConfig("test.toml")
+	config, err := loadConfig(TEST_CONFIG)
+	if err != nil {
+		t.Errorf("loadConfig failed due to error %q", err)
+		return
+	}
+
 	for _, test := range getTestCerts {
 		certPath, err := test.Get(config)
 		if err != nil {
@@ -83,5 +95,28 @@ func TestSave(t *testing.T) {
 
 		// Cleanup the files
 		os.Remove(certPath)
+	}
+}
+
+var loadTestCerts = map[string]*Cert{
+	"valid.domain.cert.pem":   {Host: "valid.domain", Body: []byte("Testing ABC\n"), CertType: "cert"},
+	"invalid.domain.cert.pem": {Host: "invalid.domain", Body: []byte("Testing 123\n"), CertType: "cert"},
+	"revoked.domain.cert.pem": {Host: "revoked.domain", Body: []byte("Testing XYZ\n"), CertType: "cert"},
+}
+
+// LoadCert() should load a certificate file into a Cert struct
+func TestLoadCert(t *testing.T) {
+	for file, expected := range loadTestCerts {
+		fullPath := filepath.Join("./loadTestFiles", file)
+		loaded, err := LoadCert(fullPath)
+		if err != nil {
+			t.Errorf("LoadCert failed due to error %q", err)
+		}
+		if loaded.Host != expected.Host {
+			t.Errorf("Host value %q does not match expected %q", loaded.Host, expected.Host)
+		}
+		if !(bytes.Equal(loaded.Body, expected.Body)) {
+			t.Errorf("Body %q does not match expected %q", loaded.Body, expected.Body)
+		}
 	}
 }

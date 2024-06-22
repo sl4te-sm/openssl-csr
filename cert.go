@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	//    "os/exec"
 
 	"github.com/pelletier/go-toml/v2"
@@ -82,6 +83,33 @@ func (csr *Cert) Save(config *Configuration) error {
 		return fmt.Errorf("Cert.Save: failed to save file %q\n%w\n", certPath, err)
 	}
 	return nil
+}
+
+// getHostName()
+// Parses filename string to only get the hostname
+func getHostName(file string) string {
+	fileSlice := strings.Split(file, "/")
+	fileSlicePart := fileSlice[len(fileSlice)-1]
+	filePart := strings.Split(fileSlicePart, ".")
+	partCount := 0
+	for _, part := range filePart {
+		if part == "cert" {
+			break
+		}
+		partCount++
+	}
+	return strings.Join(filePart[0:partCount], ".")
+}
+
+// LoadCert()
+// Loads a certificate file from the given filepath to a Cert struct
+func LoadCert(file string) (*Cert, error) {
+	fileHost := getHostName(file)
+	fileBody, err := os.ReadFile(file)
+	if err != nil {
+		return &Cert{}, fmt.Errorf("LoadCert: unable to read file %q due to error:\n%w", file, err)
+	}
+	return &Cert{Host: fileHost, Body: fileBody, CertType: "cert"}, nil
 }
 
 // Cert.Verify()
